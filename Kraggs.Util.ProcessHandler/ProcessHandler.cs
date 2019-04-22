@@ -12,12 +12,21 @@ namespace Kraggs.Util
 
         public ProcessResult Execute(ProcessSetup setup, int timeout = 30000)
         {
-            throw new NotImplementedException();
+            // naive implementation just call static version.
+            // BUT, future version will have virtual methods to override behaviour.
+            //throw new NotImplementedException();
+            return ProcessHandler.RunProcess(setup, timeout);
         }
 
-        public Task<ProcessResult> ExecuteAsync(ProcessSetup setup, CancellationToken cancel = default)
+        public async Task<ProcessResult> ExecuteAsync(ProcessSetup setup, CancellationToken cancel = default)
         {
-            throw new NotImplementedException();
+            // naive implementation just call static version.
+            // BUT, future version will have virtual methods to override behaviour.
+            //throw new NotImplementedException();
+
+            //var src = new CancellationTokenSource(30000);            
+
+            return await ProcessHandler.RunProcessAsync(setup, cancel).ConfigureAwait(false); ;
         }
 
         #endregion        

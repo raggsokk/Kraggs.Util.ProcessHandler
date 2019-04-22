@@ -12,9 +12,9 @@ namespace Kraggs.Util
 
         public int? ExitCode { get; set; }
 
-        public IEnumerable<string> Output { get; set; }
+        public List<string> Output { get; set; }
 
-        public IEnumerable<string> Errors { get; set; }
+        public List<string> Errors { get; set; }
 
 
     }

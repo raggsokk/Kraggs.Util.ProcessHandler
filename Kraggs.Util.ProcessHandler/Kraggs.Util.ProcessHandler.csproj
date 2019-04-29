@@ -3,16 +3,17 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Kraggs.Util</RootNamespace>
-    <Version>0.1.1</Version>
-    <Description>A litte library for handling executing external processes.
-It also enables unit testing with IProcessHandler interface.</Description>
+    <Version>0.3.0</Version>
+    <Description>A litte library for handling running external processes.
+</Description>
     <Authors>Jarle Hansen</Authors>
     <Company>Kraggs</Company>
     <PackageProjectUrl>https://github.com/raggsokk/Kraggs.Util.ProcessHandler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/raggsokk/Kraggs.Util.ProcessHandler</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>Process</PackageTags>
+    <PackageTags>Process Async</PackageTags>
     <Copyright>MIT</Copyright>
+    <AssemblyVersion>0.3.0.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>

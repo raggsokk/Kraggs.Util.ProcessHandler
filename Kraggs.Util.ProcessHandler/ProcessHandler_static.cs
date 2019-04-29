@@ -18,6 +18,13 @@ namespace Kraggs.Util
          */
         #region Static Helper functions for running external processes.
 
+        /// <summary>
+        /// Static function for executing external processes without going thru an instance process.
+        /// Note that this code path is not exactly the same as the instance ones.
+        /// </summary>
+        /// <param name="setup"></param>
+        /// <param name="timeout">time to wait before killing process in ms.</param>
+        /// <returns></returns>
         public static ProcessResult RunProcess(ProcessSetup setup, int timeout = 30000)
         {
             var result = new ProcessResult();
@@ -82,6 +89,13 @@ namespace Kraggs.Util
             }
         }
 
+        /// <summary>
+        /// Executes an external process async using provided processsetup and optinally a cancellation token.
+        /// Note that this is not entirely the same code path as the instance version.
+        /// </summary>
+        /// <param name="setup"></param>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
         public static async Task<ProcessResult> RunProcessAsync(ProcessSetup setup, CancellationToken cancel = default)
         {
             var result = new ProcessResult();
@@ -117,6 +131,17 @@ namespace Kraggs.Util
                 };
                 process.StartInfo.RedirectStandardError = true;
 
+                // setup exit handling
+                var exitCloseEvent = new TaskCompletionSource<bool>();
+                process.Exited += (sender, args) =>
+                {
+                    exitCloseEvent.SetResult(true);
+                };
+                process.EnableRaisingEvents = true;
+
+
+
+
                 // try to start process.
                 try
                 {
@@ -134,17 +159,20 @@ namespace Kraggs.Util
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                //TODO: Change timeout code to use cancellation instead.
-                int timeout = 30000;
+                // see instance method for explaining this code.
 
-                var waitForExit = WaitForExitAsync(process, timeout);
+                // wrap all the event task into one task.
+                var taskProcess = Task.WhenAll(exitCloseEvent.Task, outputCloseEvent.Task, errorCloseEvent.Task);
 
-                var processTask = Task.WhenAll(waitForExit, outputCloseEvent.Task, errorCloseEvent.Task);
+                // create a task for handling waiting for exit or cancellation whichever happens first.              
+                var taskWaitForExit = WaitForExitAsync(process, cancel);
 
-                if(await Task.WhenAny(Task.Delay(timeout), processTask) == processTask && waitForExit.Result)
+                // this awaits any of event tasks and exit task.
+                // when any is finished it waits for result from exit task anyway.
+                if (await Task.WhenAny(taskProcess, taskWaitForExit) == taskProcess && taskWaitForExit.Result)
                 {
                     result.HasCompleted = true;
-                    result.ExitCode = process.ExitCode;                    
+                    result.ExitCode = process.ExitCode;
                 }
                 else
                 {
@@ -161,22 +189,32 @@ namespace Kraggs.Util
 
         private static Task<bool> WaitForExitAsync(Process process, int timeout)
         {
+            //TODO: Create async with timeout instead of cancellation since thats better supported by underlying process class.
             return Task.Run(() => process.WaitForExit(timeout));
         }
 
         private static Task<bool> WaitForExitAsync(Process process, CancellationToken cancel)
         {
-            return Task.Run(() => 
-            {
-                // wait for 100ms, check cancellation requested, if not wait again until exited.
-                while(!process.WaitForExit(100))
-                {
-                    if (cancel.IsCancellationRequested)
-                        return false; // true of false here?
-                }
+            //TODO: Find a better way to wait for process finish OR cancellation.
+            //Unfortunately, there seems to be no good way to wait for cancellation.
 
-                return true;
-            });
+            // try to detect if cancellatin token is valid or just default.
+            //if (cancel == CancellationToken.None)
+            //    return WaitForExitAsync(process, Timeout.Infinite);
+            //else
+            {
+                return Task.Run(() =>
+                {
+                    // wait for 100ms, check cancellation requested, if not wait again until exited.
+                    while (!process.WaitForExit(100))
+                        {
+                            if (cancel.IsCancellationRequested)
+                                return false; // true of false here?
+                    }
+
+                    return true;
+                });
+            }
         }
 
         private static void SetupProcess(Process process, ProcessSetup setup)
@@ -195,8 +233,7 @@ namespace Kraggs.Util
                     process.StartInfo.Environment.Add(kv.key, kv.value);
             }
 
-            // setup events and delegates.
-
+           
         }
 
         #endregion

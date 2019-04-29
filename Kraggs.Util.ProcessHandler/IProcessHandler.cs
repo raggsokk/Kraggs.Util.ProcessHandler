@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Kraggs.Util
 {
+    /// <summary>
+    /// Public interface for handling running external processes.
+    /// </summary>
     public interface IProcessHandler
     {
         ProcessResult Execute(ProcessSetup setup, int timeout = 30000);

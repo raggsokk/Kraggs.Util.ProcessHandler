@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Kraggs.Util</RootNamespace>
-    <Version>0.3.0</Version>
-    <Description>A litte library for handling running external processes.
+    <Version>0.4.0</Version>
+    <Description>A little library for handling running external processes.
 </Description>
     <Authors>Jarle Hansen</Authors>
     <Company>Kraggs</Company>
@@ -13,7 +13,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>Process Async</PackageTags>
     <Copyright>MIT</Copyright>
-    <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>

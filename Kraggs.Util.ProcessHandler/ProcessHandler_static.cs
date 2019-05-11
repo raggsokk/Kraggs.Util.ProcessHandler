@@ -187,6 +187,96 @@ namespace Kraggs.Util
             }
         }
 
+        /// <summary>
+        /// Run a process async with a timeout.
+        /// </summary>
+        /// <param name="setup"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        public static async Task<ProcessResult> RunProcessAsync(ProcessSetup setup, int timeout)
+        {
+
+            var result = new ProcessResult();
+
+            using (var process = new Process())
+            {
+                SetupProcess(process, setup);
+
+
+                // setup output handling.
+                result.Output = new List<string>();
+                var outputCloseEvent = new TaskCompletionSource<bool>();
+                process.OutputDataReceived += (sender, args) =>
+                {
+                    var d = args.Data;
+                    //if (string.IsNullOrWhiteSpace(d))
+                    if (d == null)
+                        outputCloseEvent.SetResult(true);
+                    else
+                        result.Output.Add(d);
+                };
+                process.StartInfo.RedirectStandardOutput = true;
+
+                // setup error handling
+                result.Errors = new List<string>();
+                var errorCloseEvent = new TaskCompletionSource<bool>();
+                process.ErrorDataReceived += (sender, args) =>
+                {
+                    var e = args.Data;
+                    if (e == null)
+                        errorCloseEvent.SetResult(true);
+                    else
+                        result.Errors.Add(args.Data);
+                };
+                process.StartInfo.RedirectStandardError = true;
+
+                // try to start process.
+                try
+                {
+                    result.WasStarted = process.Start();
+                }
+                catch (Exception e)
+                {
+                    // Usually it occurs when an executable file is not found or is not executable
+                    // or requires admin privileges.
+                    result.Errors.Add(e.Message);
+                    return result;
+                }
+
+                if (result.WasStarted)
+                {
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    var taskWaitForExit = WaitForExitAsync(process, timeout);
+
+                    var taskProcess = Task.WhenAll(taskWaitForExit, outputCloseEvent.Task, errorCloseEvent.Task);
+
+                    if(await Task.WhenAny(Task.Delay(timeout), taskProcess) == taskProcess && taskWaitForExit.Result)
+                    {
+                        result.HasCompleted = true;
+                        result.ExitCode = process.ExitCode;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch { } // ignore error.     
+                    }
+
+                }
+
+                return result;
+            }
+
+        }
+
+        #endregion
+
+        #region Static Helper functions.
+
         private static Task<bool> WaitForExitAsync(Process process, int timeout)
         {
             //TODO: Create async with timeout instead of cancellation since thats better supported by underlying process class.
@@ -217,6 +307,11 @@ namespace Kraggs.Util
             }
         }
 
+        /// <summary>
+        /// Set process parameters based on setup object.
+        /// </summary>
+        /// <param name="process"></param>
+        /// <param name="setup"></param>
         private static void SetupProcess(Process process, ProcessSetup setup)
         {
             process.StartInfo.FileName = setup.Executable;
@@ -232,7 +327,6 @@ namespace Kraggs.Util
                 foreach (var kv in setup.EnvironmentVariables)
                     process.StartInfo.Environment.Add(kv.key, kv.value);
             }
-
            
         }
 
